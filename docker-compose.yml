@@ -1,0 +1,81 @@
+# ============================================================
+# Docker Compose – Document Processing API
+# Services: api, worker, redis, postgres
+# ============================================================
+
+version: "3.8"
+
+services:
+  # ── PostgreSQL ────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: docuser
+      POSTGRES_PASSWORD: docpass
+      POSTGRES_DB: docprocessing
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docuser -d docprocessing"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Redis ─────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── API Server ────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://docuser:docpass@postgres:5432/docprocessing?schema=public"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+  # ── Worker Process ────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      target: worker
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://docuser:docpass@postgres:5432/docprocessing?schema=public"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+volumes:
+  pgdata:
+  redisdata:

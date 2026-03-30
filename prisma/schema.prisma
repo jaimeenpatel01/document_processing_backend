@@ -1,0 +1,36 @@
+// Prisma schema for Asynchronous Document Processing API
+
+generator client {
+  provider      = "prisma-client-js"
+  // Alpine (musl) uses OpenSSL 3.x. List both arm64 and amd64 variants
+  // so the image works on both Apple Silicon and x86 hosts.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  queued
+  processing
+  completed
+  failed
+}
+
+model Job {
+  id          String    @id @default(uuid()) @db.Uuid
+  fileUrl     String
+  status      JobStatus @default(queued)
+  result      Json?
+  error       String?
+  webhookUrl  String?
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  retryCount  Int       @default(0)
+
+  @@index([status])
+  @@index([createdAt])
+}
