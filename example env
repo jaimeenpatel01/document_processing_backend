@@ -1,0 +1,17 @@
+# Server
+PORT=3000
+NODE_ENV=development
+
+# PostgreSQL
+DATABASE_URL="postgresql://docuser:docpass@localhost:5432/docprocessing?schema=public"
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Queue
+QUEUE_NAME=document-processing
+WORKER_CONCURRENCY=5
+
+# Logging
+LOG_LEVEL=info
